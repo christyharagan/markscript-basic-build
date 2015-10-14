@@ -15,11 +15,13 @@
     },
     "compileOnSave": true,
     "filesGlob": [
+        "build.d.ts",
         "src/**/*.ts",
         "typings/**/*.d.ts",
         "node_modules/marklogic-node-typescript-definitions/ts/index.d.ts"
     ],
     "files": [
+        "build.d.ts",
         "src/lib/buildPlugin.ts",
         "src/lib/decorators.ts",
         "src/lib/index.ts",

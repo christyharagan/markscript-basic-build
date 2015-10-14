@@ -4,11 +4,7 @@ declare interface BasicBuildConfig {
 
     defaultTaskUser?: string
 
-    modules?: string | string[]
-    ruleSets?: core.RuleSetSpec[]
-    tasks?: core.TaskSpec[]
-    alerts?: core.AlertSpec[]
-    extensions?: { [extensionName: string]: string }
+    modules?: string
   }
 }
 
@@ -17,4 +13,13 @@ declare interface BasicServer {
   callPost<T>(name: string, args?: { [name: string]: string | number | boolean }, body?: string | Object): Promise<T>
   callPut<T>(name: string, args?: { [name: string]: string | number | boolean }, body?: string | Object): Promise<T>
   callDelete<T>(name: string, args?: { [name: string]: string | number | boolean }): Promise<T>
+}
+
+declare module 'markscript-basic-build' {
+  class Server implements BasicServer {
+    callGet<T>(name: string, args?: { [name: string]: string | number | boolean }): Promise<T>
+    callPost<T>(name: string, args?: { [name: string]: string | number | boolean }, body?: string | Object): Promise<T>
+    callPut<T>(name: string, args?: { [name: string]: string | number | boolean }, body?: string | Object): Promise<T>
+    callDelete<T>(name: string, args?: { [name: string]: string | number | boolean }): Promise<T>
+  }
 }
