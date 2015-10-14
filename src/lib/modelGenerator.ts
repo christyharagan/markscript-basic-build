@@ -1,4 +1,5 @@
 import {reflective as s, visitType, TypeVisitor, TypeKind, expressionToLiteral, PrimitiveTypeKind, MemberVisitor, interfaceConstructorToString, classConstructorToString, KeyValue, visitModules, CompositeTypeVisitor, visitClassConstructor, ContainerVisitor, ClassConstructorVisitor} from 'typescript-schema'
+import * as basic from 'markscript-basic'
 import * as m from 'markscript-core'
 import * as d from './decorators'
 import * as t from 'typescript'
@@ -8,44 +9,44 @@ import * as fs from 'fs'
 
 let babel = require('babel')
 
-function toScalarType(rangeOptions: d.RangeIndexedOptions, member: s.DecoratedMember<any>): string {
+function toScalarType(rangeOptions: basic.RangeIndexedOptions, member: s.DecoratedMember<any>): string {
   if (rangeOptions.scalarType) {
     switch (rangeOptions.scalarType) {
-      case d.ScalarType.int:
+      case basic.ScalarType.int:
         return 'int'
-      case d.ScalarType.unsignedInt:
+      case basic.ScalarType.unsignedInt:
         return 'unsignedInt'
-      case d.ScalarType.long:
+      case basic.ScalarType.long:
         return 'long'
-      case d.ScalarType.unsignedLong:
+      case basic.ScalarType.unsignedLong:
         return 'unsignedLong'
-      case d.ScalarType.float:
+      case basic.ScalarType.float:
         return 'float'
-      case d.ScalarType.double:
+      case basic.ScalarType.double:
         return 'double'
-      case d.ScalarType.decimal:
+      case basic.ScalarType.decimal:
         return 'decimal'
-      case d.ScalarType.dateTime:
+      case basic.ScalarType.dateTime:
         return 'dateTime'
-      case d.ScalarType.time:
+      case basic.ScalarType.time:
         return 'time'
-      case d.ScalarType.date:
+      case basic.ScalarType.date:
         return 'date'
-      case d.ScalarType.gYearMonth:
+      case basic.ScalarType.gYearMonth:
         return 'gYearMonth'
-      case d.ScalarType.gYear:
+      case basic.ScalarType.gYear:
         return 'gYear'
-      case d.ScalarType.gMonth:
+      case basic.ScalarType.gMonth:
         return 'gMonth'
-      case d.ScalarType.gDay:
+      case basic.ScalarType.gDay:
         return 'gDay'
-      case d.ScalarType.yearMonthDuration:
+      case basic.ScalarType.yearMonthDuration:
         return 'yearMonthDuration'
-      case d.ScalarType.dayTimeDuration:
+      case basic.ScalarType.dayTimeDuration:
         return 'dayTimeDuration'
-      case d.ScalarType.string:
+      case basic.ScalarType.string:
         return 'string'
-      case d.ScalarType.anyURI:
+      case basic.ScalarType.anyURI:
         return 'anyURI'
     }
   } else {
@@ -176,7 +177,7 @@ var extensionObject = new ExtensionClass();
                           if ((<s.PrimitiveType>member.type).primitiveTypeKind !== PrimitiveTypeKind.STRING && !((<s.FunctionType>member.type).typeKind === TypeKind.FUNCTION && (<s.PrimitiveType>(<s.FunctionType>member.type).type).primitiveTypeKind === PrimitiveTypeKind.STRING)) {
                             throw new Error('A class member annotated as a MarkLogic rule set must be a string property, at: ' + module.name + ':' + cc.name + ':' + member.name)
                           }
-                          let path = (<d.RuleSetOptions>expressionToLiteral(decorator.parameters[0])).path
+                          let path = (<basic.RuleSetOptions>expressionToLiteral(decorator.parameters[0])).path
                           let rules = definition[decorator.parent.name]()
 
                           assetModel.ruleSets.push({
@@ -191,15 +192,24 @@ var extensionObject = new ExtensionClass();
                           if ((<s.Type>member.type).typeKind !== TypeKind.FUNCTION || (<s.FunctionType>member.type).parameters.length !== 2) {
                             throw new Error('A class member annotated as a MarkLogic alert must be a method of type (uri?:string, content?:cts.DocumentNode)=>void, at: ' + module.name + ':' + cc.name + ':' + member.name)
                           }
-                          let alertOptions = <d.AlertOptions>expressionToLiteral(decorator.parameters[0])
+                          let alertOptions = <basic.AlertOptions>expressionToLiteral(decorator.parameters[0])
                           let alertModuleName = '/_alerts/' + classConstructorToString(cc).replace(/:/g, '/') + '/' + member.name
                           let alertName = alertOptions.name || (classConstructorToString(cc).replace(/\//g, '-').replace(/:/g, '-') + '-' + member.name)
                           assetModel.alerts[alertName] = {
                             name: alertName,
                             scope: alertOptions.scope,
-                            states: alertOptions.states,
+                            states: alertOptions.states.map(function(state){
+                              switch(state) {
+                                case basic.TRIGGER_STATE.CREATE:
+                                  return m.TRIGGER_STATE.CREATE
+                                case basic.TRIGGER_STATE.MODIFY:
+                                  return m.TRIGGER_STATE.MODIFY
+                                case basic.TRIGGER_STATE.DELETE:
+                                  return m.TRIGGER_STATE.DELETE
+                              }
+                            }),
                             depth: alertOptions.depth,
-                            commit: alertOptions.commit,
+                            commit: alertOptions.commit === basic.TRIGGER_COMMIT.PRE ? m.TRIGGER_COMMIT.PRE : (alertOptions.commit === basic.TRIGGER_COMMIT.POST ? m.TRIGGER_COMMIT.POST : null),
                             actionModule: alertModuleName
                           }
                           assetModel.modules[alertModuleName] = {
@@ -218,11 +228,11 @@ module.exports = function(uri, content){
                           if ((<s.Type>member.type).typeKind !== TypeKind.FUNCTION || (<s.FunctionType>member.type).parameters.length > 0) {
                             throw new Error('A class member annotated as a MarkLogic task must be a method with zero parameters, at: ' + module.name + ':' + cc.name + ':' + member.name)
                           }
-                          let taskOptions = <d.TaskOptions>expressionToLiteral(decorator.parameters[0])
+                          let taskOptions = <basic.TaskOptions>expressionToLiteral(decorator.parameters[0])
                           let taskModuleName = '/_tasks/' + classConstructorToString(cc).replace(/:/g, '/') + '/' + member.name
                           let taskName = taskOptions.name || classConstructorToString(cc).replace(/\//g, '-').replace(/:/g, '-') + '-' + member.name
                           assetModel.tasks[taskName] = {
-                            type: taskOptions.type || m.FrequencyType.MINUTES,
+                            type: (!taskOptions.type || taskOptions.type === basic.FrequencyType.MINUTES) ? m.FrequencyType.MINUTES : (taskOptions.type === basic.FrequencyType.HOURS ? m.FrequencyType.HOURS : m.FrequencyType.DAYS),
                             frequency: taskOptions.frequency,
                             user: taskOptions.user || defaultTaskUser,
                             name: taskName,
@@ -395,7 +405,7 @@ export function generateModel(schema: KeyValue<s.Module>, definition: Object, de
                     onMemberDecorator: function(decorator) {
                       switch (decorator.decoratorType.name) {
                         case 'rangeIndexed':
-                          let rangeOptions: d.RangeIndexedOptions = (decorator.parameters && decorator.parameters.length > 0) ? expressionToLiteral(decorator.parameters[0]) : {}
+                          let rangeOptions: basic.RangeIndexedOptions = (decorator.parameters && decorator.parameters.length > 0) ? expressionToLiteral(decorator.parameters[0]) : {}
                           let scalarType = toScalarType(rangeOptions, decorator.parent)
                           if (scalarType) {
                             rangeIndices.push({
@@ -406,7 +416,7 @@ export function generateModel(schema: KeyValue<s.Module>, definition: Object, de
                           }
                           break;
                         case 'geoIndexed':
-                          let geoOptions: d.GeoIndexedOptions = (decorator.parameters && decorator.parameters.length > 0) ? expressionToLiteral(decorator.parameters[0]) : {}
+                          let geoOptions: basic.GeoIndexedOptions = (decorator.parameters && decorator.parameters.length > 0) ? expressionToLiteral(decorator.parameters[0]) : {}
                           // TODO: Support more than point format (e.g. long-lat-point format)
                           let geoIndex: m.GeoIndexSpec = {
                             path: geoOptions.path || `/${decorator.parent.name}`,
