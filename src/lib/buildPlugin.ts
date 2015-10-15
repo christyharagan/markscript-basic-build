@@ -4,7 +4,7 @@ import * as mg from './modelGenerator'
 import * as path from 'path'
 import * as glob from 'glob'
 
-export const BasicBuildPlugin: core.BuildModelPlugin<MarkScript.BasicBuildConfig, {}> = {
+export const basicBuildPlugin: core.BuildModelPlugin<MarkScript.BasicBuildConfig, {}> = {
   generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&MarkScript.BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>): MarkScript.BuildModel {
     let model = mg.generateModel(typeModel, options.database.modelObject, options.databaseConnection.host)
     Object.keys(model).forEach(function(key){

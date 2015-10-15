@@ -86,7 +86,11 @@ declare module 'markscript-basic-build' {
   function mlAlert(definition?: AlertOptions): (target: Object, propertyKey: string) => void;
   function mlExtension(definition?: ExtensionOptions): (target: any) => any;
 
+  const basicBuildPlugin
+
   class Runtime implements MarkScript.BasicRuntime {
+    constructor(buildModel: MarkScript.BuildModel, buildConfig: MarkScript.BuildConfig)
+
     callGet<T>(name: string, args?: { [name: string]: string | number | boolean }): Promise<T>
     callPost<T>(name: string, args?: { [name: string]: string | number | boolean }, body?: string | Object): Promise<T>
     callPut<T>(name: string, args?: { [name: string]: string | number | boolean }, body?: string | Object): Promise<T>
