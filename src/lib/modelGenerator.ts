@@ -1,6 +1,6 @@
 import {reflective as s, visitType, TypeVisitor, TypeKind, expressionToLiteral, PrimitiveTypeKind, MemberVisitor, interfaceConstructorToString, classConstructorToString, KeyValue, visitModules, CompositeTypeVisitor, visitClassConstructor, ContainerVisitor, ClassConstructorVisitor} from 'typescript-schema'
 import * as basic from 'markscript-basic'
-import * as m from 'markscript-core'
+//import * as m from 'markscript-core'
 import * as d from './decorators'
 import * as t from 'typescript'
 import * as p from 'typescript-package'
@@ -89,7 +89,7 @@ function toModuleName(name: string, packageName?: string) {
   return name
 }
 
-export function generateAssetModel(schema: KeyValue<s.Module>, definition: Object, assetModel?: m.AssetModel, defaultTaskUser?: string): m.AssetModel {
+export function generateAssetModel(schema: KeyValue<s.Module>, definition: Object, assetModel?: MarkScript.AssetModel, defaultTaskUser?: string): MarkScript.AssetModel {
   if (assetModel) {
     if (!assetModel.ruleSets) {
       assetModel.ruleSets = []
@@ -198,18 +198,9 @@ var extensionObject = new ExtensionClass();
                           assetModel.alerts[alertName] = {
                             name: alertName,
                             scope: alertOptions.scope,
-                            states: alertOptions.states.map(function(state){
-                              switch(state) {
-                                case basic.TRIGGER_STATE.CREATE:
-                                  return m.TRIGGER_STATE.CREATE
-                                case basic.TRIGGER_STATE.MODIFY:
-                                  return m.TRIGGER_STATE.MODIFY
-                                case basic.TRIGGER_STATE.DELETE:
-                                  return m.TRIGGER_STATE.DELETE
-                              }
-                            }),
+                            states: alertOptions.states,
                             depth: alertOptions.depth,
-                            commit: alertOptions.commit === basic.TRIGGER_COMMIT.PRE ? m.TRIGGER_COMMIT.PRE : (alertOptions.commit === basic.TRIGGER_COMMIT.POST ? m.TRIGGER_COMMIT.POST : null),
+                            commit: alertOptions.commit,
                             actionModule: alertModuleName
                           }
                           assetModel.modules[alertModuleName] = {
@@ -232,7 +223,7 @@ module.exports = function(uri, content){
                           let taskModuleName = '/_tasks/' + classConstructorToString(cc).replace(/:/g, '/') + '/' + member.name
                           let taskName = taskOptions.name || classConstructorToString(cc).replace(/\//g, '-').replace(/:/g, '-') + '-' + member.name
                           assetModel.tasks[taskName] = {
-                            type: (!taskOptions.type || taskOptions.type === basic.FrequencyType.MINUTES) ? m.FrequencyType.MINUTES : (taskOptions.type === basic.FrequencyType.HOURS ? m.FrequencyType.HOURS : m.FrequencyType.DAYS),
+                            type: taskOptions.type || MarkScript.FrequencyType.MINUTES,
                             frequency: taskOptions.frequency,
                             user: taskOptions.user || defaultTaskUser,
                             name: taskName,
@@ -278,7 +269,7 @@ function loadCode(packageDir: string, modulePath: string): string {
   return code
 }
 
-export function addExtensions(assetModel: m.AssetModel, packageDir: string, extensions: { [name: string]: string }) {
+export function addExtensions(assetModel: MarkScript.AssetModel, packageDir: string, extensions: { [name: string]: string }) {
   if (!assetModel.extensions) {
     assetModel.extensions = {}
   }
@@ -292,7 +283,7 @@ export function addExtensions(assetModel: m.AssetModel, packageDir: string, exte
   })
 }
 
-export function addModules(assetModel: m.AssetModel, packageDir: string, modulePaths: string[]) {
+export function addModules(assetModel: MarkScript.AssetModel, packageDir: string, modulePaths: string[]) {
   if (!assetModel.modules) {
     assetModel.modules = {}
   }
@@ -340,14 +331,14 @@ function removeDecorators(source: string): string {
   return source
 }
 
-export function generateModel(schema: KeyValue<s.Module>, definition: Object, defaultHost?: string): m.Model {
-  let model: m.Model = {
+export function generateModel(schema: KeyValue<s.Module>, definition: Object, defaultHost?: string): MarkScript.Model {
+  let model: MarkScript.Model = {
     databases: {},
     servers: {}
   }
 
-  let rangeIndices: m.RangeIndexSpec[] = []
-  let geoIndices: m.GeoIndexSpec[] = []
+  let rangeIndices: MarkScript.RangeIndexSpec[] = []
+  let geoIndices: MarkScript.GeoIndexSpec[] = []
 
   let databasesByType = {
     content: null,
@@ -380,7 +371,7 @@ export function generateModel(schema: KeyValue<s.Module>, definition: Object, de
                     // TODO: We should be referencing the interface schema here, not just a name
                     switch (name) {
                       case 'DatabaseSpec':
-                        let databaseSpec = <m.DatabaseSpec>definition[member.name]
+                        let databaseSpec = <MarkScript.DatabaseSpec>definition[member.name]
                         model.databases[databaseSpec.name] = databaseSpec
                         databases[member.name] = databaseSpec.name
                         if (!databaseSpec.forests || databaseSpec.forests.length === 0) {
@@ -392,7 +383,7 @@ export function generateModel(schema: KeyValue<s.Module>, definition: Object, de
                         }
                         break
                       case 'ServerSpec':
-                        let serverSpec = <m.ServerSpec>definition[member.name]
+                        let serverSpec = <MarkScript.ServerSpec>definition[member.name]
                         if (!serverSpec.group) {
                           serverSpec.group = 'Default'
                         }
@@ -418,7 +409,7 @@ export function generateModel(schema: KeyValue<s.Module>, definition: Object, de
                         case 'geoIndexed':
                           let geoOptions: basic.GeoIndexedOptions = (decorator.parameters && decorator.parameters.length > 0) ? expressionToLiteral(decorator.parameters[0]) : {}
                           // TODO: Support more than point format (e.g. long-lat-point format)
-                          let geoIndex: m.GeoIndexSpec = {
+                          let geoIndex: MarkScript.GeoIndexSpec = {
                             path: geoOptions.path || `/${decorator.parent.name}`,
                             pointFormat: geoOptions.pointFormat || 'point'
                           }

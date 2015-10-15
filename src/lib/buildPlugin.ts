@@ -4,23 +4,9 @@ import * as mg from './modelGenerator'
 import * as path from 'path'
 import * as glob from 'glob'
 
-export interface BasicBuildConfig {
-  database: {
-    modelObject: Object
-
-    defaultTaskUser?: string
-
-    modules?: string | string[]
-    ruleSets?: core.RuleSetSpec[]
-    tasks?: core.TaskSpec[]
-    alerts?: core.AlertSpec[]
-    extensions?: { [extensionName: string]: string }
-  }
-}
-
-export const BasicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
-  generate: function(buildModel: core.BuildModel, options: core.BuildConfig&BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>): core.BuildModel {
-    let model = mg.generateModel(typeModel, options.database.modelObject, options.database.host)
+export const BasicBuildPlugin: core.BuildModelPlugin<MarkScript.BasicBuildConfig, {}> = {
+  generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&MarkScript.BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>): MarkScript.BuildModel {
+    let model = mg.generateModel(typeModel, options.database.modelObject, options.databaseConnection.host)
     Object.keys(model).forEach(function(key){
       if (key === 'databases') {
         Object.keys(model.databases).forEach(function(name){
@@ -34,7 +20,7 @@ export const BasicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
         buildModel[key] = model[key]
       }
     })
-    mg.generateAssetModel(typeModel, options.database.modelObject, buildModel, options.database.defaultTaskUser || options.database.user)
+    mg.generateAssetModel(typeModel, options.database.modelObject, buildModel, options.database.defaultTaskUser || options.databaseConnection.user)
 
     if (options.database.modules) {
       if (Array.isArray(options.database.modules)) {

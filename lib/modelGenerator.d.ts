@@ -1,8 +1,7 @@
 import { reflective as s, KeyValue } from 'typescript-schema';
-import * as m from 'markscript-core';
-export declare function generateAssetModel(schema: KeyValue<s.Module>, definition: Object, assetModel?: m.AssetModel, defaultTaskUser?: string): m.AssetModel;
-export declare function addExtensions(assetModel: m.AssetModel, packageDir: string, extensions: {
+export declare function generateAssetModel(schema: KeyValue<s.Module>, definition: Object, assetModel?: MarkScript.AssetModel, defaultTaskUser?: string): MarkScript.AssetModel;
+export declare function addExtensions(assetModel: MarkScript.AssetModel, packageDir: string, extensions: {
     [name: string]: string;
 }): void;
-export declare function addModules(assetModel: m.AssetModel, packageDir: string, modulePaths: string[]): void;
-export declare function generateModel(schema: KeyValue<s.Module>, definition: Object, defaultHost?: string): m.Model;
+export declare function addModules(assetModel: MarkScript.AssetModel, packageDir: string, modulePaths: string[]): void;
+export declare function generateModel(schema: KeyValue<s.Module>, definition: Object, defaultHost?: string): MarkScript.Model;

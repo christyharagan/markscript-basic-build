@@ -19,6 +19,7 @@
         "src/**/*.ts",
         "typings/**/*.d.ts",
         "node_modules/*/build.d.ts",
+        "node_modules/marklogic-typescript-definitions/ts/index.d.ts",
         "node_modules/marklogic-node-typescript-definitions/ts/index.d.ts"
     ],
     "files": [
@@ -27,13 +28,14 @@
         "src/lib/decorators.ts",
         "src/lib/index.ts",
         "src/lib/modelGenerator.ts",
-        "src/lib/server.ts",
+        "src/lib/runtime.ts",
         "typings/glob/glob.d.ts",
         "typings/minimatch/minimatch.d.ts",
         "typings/node/node.d.ts",
         "typings/promise/promise.d.ts",
         "typings/tsd.d.ts",
         "node_modules/markscript-core/build.d.ts",
+        "node_modules/marklogic-typescript-definitions/ts/index.d.ts",
         "node_modules/marklogic-node-typescript-definitions/ts/index.d.ts"
     ],
     "exclude": []

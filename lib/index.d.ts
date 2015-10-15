@@ -1,4 +1,4 @@
 export * from './decorators';
 export * from './modelGenerator';
-export * from './server';
+export * from './runtime';
 export * from './buildPlugin';
