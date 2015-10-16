@@ -4,8 +4,22 @@ import * as mg from './modelGenerator'
 import * as path from 'path'
 import * as glob from 'glob'
 
-export const basicBuildPlugin: core.BuildModelPlugin<MarkScript.BasicBuildConfig, {}> = {
-  generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&MarkScript.BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>): MarkScript.BuildModel {
+export interface BasicBuildConfig {
+  database: {
+    modelObject: Object
+
+    defaultTaskUser?: string
+
+    modules?: string | string[]
+    ruleSets?: MarkScript.RuleSetSpec[]
+    tasks?: MarkScript.TaskSpec[]
+    alerts?: MarkScript.AlertSpec[]
+    extensions?: { [extensionName: string]: string }
+  }
+}
+
+export const basicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
+  generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>): MarkScript.BuildModel {
     let model = mg.generateModel(typeModel, options.database.modelObject, options.databaseConnection.host)
     Object.keys(model).forEach(function(key){
       if (key === 'databases') {
