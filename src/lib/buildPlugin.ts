@@ -3,6 +3,7 @@ import * as s from 'typescript-schema'
 import * as mg from './modelGenerator'
 import * as path from 'path'
 import * as glob from 'glob'
+import * as os from 'os'
 
 export interface BasicBuildConfig {
   database: {
@@ -20,7 +21,7 @@ export interface BasicBuildConfig {
 
 export const basicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
   generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>): MarkScript.BuildModel {
-    let model = mg.generateModel(typeModel, options.database.modelObject, options.databaseConnection.host)
+    let model = mg.generateModel(typeModel, options.database.modelObject, options.databaseConnection.host || os.hostname())
     Object.keys(model).forEach(function(key){
       if (key === 'databases') {
         Object.keys(model.databases).forEach(function(name){

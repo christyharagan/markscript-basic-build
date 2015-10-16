@@ -1,3 +1,8 @@
+export function mlDeploy() {
+  return function(target: any): void {
+  }
+}
+
 export function contentDatabase() {
   return function(target: Object, propertyKey: string): void {
   }
