@@ -1,11 +1,11 @@
 import {reflective as s, visitType, TypeVisitor, TypeKind, expressionToLiteral, PrimitiveTypeKind, MemberVisitor, interfaceConstructorToString, classConstructorToString, KeyValue, visitModules, CompositeTypeVisitor, visitClassConstructor, ContainerVisitor, ClassConstructorVisitor} from 'typescript-schema'
 import * as basic from 'markscript-basic'
-//import * as m from 'markscript-core'
 import * as d from './decorators'
 import * as t from 'typescript'
 import * as p from 'typescript-package'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as os from 'os'
 
 let babel = require('babel')
 
@@ -125,14 +125,18 @@ export function generateAssetModel(schema: KeyValue<s.Module>, definition: Objec
               switch (decorator.decoratorType.name) {
                 case 'mlExtension':
                   let methods:string[] = []
-                  let isValid = false
+                  let extensionOptions = decorator.parameters && decorator.parameters[0] ? <basic.ExtensionOptions>expressionToLiteral(decorator.parameters[0]) : null
+
+                  // TODO: Implement type checking
+
+                  // let isValid = false
 
                   visitClassConstructor(cc, {
-                    onImplement: function(impl) {
-                      if (interfaceConstructorToString(<s.InterfaceConstructor>impl.typeConstructor) === 'markscript-core/lib/server/extension:Extension') {
-                        isValid = true
-                      }
-                    },
+                    // onImplement: function(impl) {
+                    //   if (interfaceConstructorToString(<s.InterfaceConstructor>impl.typeConstructor) === 'markscript-build/lib/server/extension:Extension') {
+                    //     isValid = true
+                    //   }
+                    // },
                     onInstanceType: function(it) {
                       return <CompositeTypeVisitor>{
                         onMember: function(member) {
@@ -148,9 +152,9 @@ export function generateAssetModel(schema: KeyValue<s.Module>, definition: Objec
                     }
                   })
 
-                  if (!isValid) {
-                    throw new Error('A class annotated as a MarkLogic extension should implement markscript-core.Extension, at: ' + module.name + ':' + cc.name)
-                  }
+                  // if (!isValid) {
+                  //   throw new Error('A class annotated as a MarkLogic extension should implement markscript-core.Extension, at: ' + module.name + ':' + cc.name)
+                  // }
 
                   let code = 'var ExtensionClass = r' + `equire("${toModuleName(module.name) }").${cc.name};
 var extensionObject = new ExtensionClass();
@@ -160,7 +164,7 @@ var extensionObject = new ExtensionClass();
 `
                   })
 
-                  let extensionModuleName = '_extensions-' + classConstructorToString(cc).replace(/:/g, '-').replace(/\//g, '-')
+                  let extensionModuleName = (extensionOptions && extensionOptions.name) ? extensionOptions.name : ('_extensions-' + classConstructorToString(cc).replace(/:/g, '-').replace(/\//g, '-'))
                   assetModel.extensions[extensionModuleName] = {
                     name: extensionModuleName,
                     code: code
@@ -250,8 +254,8 @@ taskObject.${member.name}();`
   return assetModel
 }
 
-function loadCode(packageDir: string, modulePath: string): string {
-  let fileName = path.join(packageDir, modulePath)
+function loadCode(baseDir: string, modulePath: string): string {
+  let fileName = path.join(baseDir, modulePath)
   let code = fs.readFileSync(fileName).toString()
 
   // TODO: Do we really want to transpile ourselves? If so, we should offer more options to the user
@@ -269,12 +273,12 @@ function loadCode(packageDir: string, modulePath: string): string {
   return code
 }
 
-export function addExtensions(assetModel: MarkScript.AssetModel, packageDir: string, extensions: { [name: string]: string }) {
+export function addExtensions(assetModel: MarkScript.AssetModel, baseDir: string, extensions: { [name: string]: string }) {
   if (!assetModel.extensions) {
     assetModel.extensions = {}
   }
   Object.keys(extensions).forEach(function(name) {
-    let extensionCode = loadCode(packageDir, extensions[name])
+    let extensionCode = loadCode(baseDir, extensions[name])
 
     assetModel.extensions[name] = {
       name: name,
@@ -283,14 +287,14 @@ export function addExtensions(assetModel: MarkScript.AssetModel, packageDir: str
   })
 }
 
-export function addModules(assetModel: MarkScript.AssetModel, packageDir: string, modulePaths: string[]) {
+export function addModules(assetModel: MarkScript.AssetModel, packageDir: string, baseDir:string, modulePaths: string[]) {
   if (!assetModel.modules) {
     assetModel.modules = {}
   }
   let packageJson = p.getPackageJson(packageDir)
   modulePaths.forEach(function(moduleToDeploy) {
     if (!assetModel.modules[moduleToDeploy]) {
-      let moduleCode = loadCode(packageDir, moduleToDeploy)
+      let moduleCode = loadCode(baseDir, moduleToDeploy)
       let moduleName = toModuleName(moduleToDeploy, packageJson.name)
 
       assetModel.modules[moduleName] = {
@@ -332,6 +336,8 @@ function removeDecorators(source: string): string {
 }
 
 export function generateModel(schema: KeyValue<s.Module>, definition: Object, defaultHost?: string): MarkScript.Model {
+  defaultHost = (defaultHost || os.hostname()).toLowerCase()
+
   let model: MarkScript.Model = {
     databases: {},
     servers: {}
@@ -387,6 +393,7 @@ export function generateModel(schema: KeyValue<s.Module>, definition: Object, de
                         if (!serverSpec.group) {
                           serverSpec.group = 'Default'
                         }
+                        serverSpec.host = (serverSpec.host || defaultHost).toLowerCase()
                         model.servers[serverSpec.name] = serverSpec
                         break
                     }

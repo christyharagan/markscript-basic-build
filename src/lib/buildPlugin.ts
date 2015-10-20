@@ -1,5 +1,6 @@
 import * as core from 'markscript-core'
 import * as s from 'typescript-schema'
+import * as p from 'typescript-package'
 import * as mg from './modelGenerator'
 import * as path from 'path'
 import * as glob from 'glob'
@@ -20,7 +21,7 @@ export interface BasicBuildConfig {
 }
 
 export const basicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
-  generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>): MarkScript.BuildModel {
+  generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>, assetTypeModel?: s.KeyValue<s.reflective.Module>): MarkScript.BuildModel {
     let model = mg.generateModel(typeModel, options.database.modelObject, options.databaseConnection.host || os.hostname())
     Object.keys(model).forEach(function(key){
       if (key === 'databases') {
@@ -35,17 +36,25 @@ export const basicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
         buildModel[key] = model[key]
       }
     })
-    mg.generateAssetModel(typeModel, options.database.modelObject, buildModel, options.database.defaultTaskUser || options.databaseConnection.user)
+    mg.generateAssetModel(assetTypeModel, options.database.modelObject, buildModel, options.database.defaultTaskUser || options.databaseConnection.user)
 
+    let baseDir:string
     if (options.database.modules) {
+      let tsConfig = p.getTSConfig(pkgDir)
+      baseDir = tsConfig.compilerOptions.rootDir ? path.join(pkgDir, tsConfig.compilerOptions.rootDir) : pkgDir
       if (Array.isArray(options.database.modules)) {
-        mg.addModules(buildModel, pkgDir, <string[]>options.database.modules)
+        mg.addModules(buildModel, pkgDir, baseDir, <string[]>options.database.modules)
       } else if (typeof options.database.modules === 'string') {
-        mg.addModules(buildModel, pkgDir, glob.sync(<string>options.database.modules, { cwd: pkgDir }))
+        mg.addModules(buildModel, pkgDir, baseDir, glob.sync(<string>options.database.modules, { cwd: baseDir }))
       }
+    } else if (options.assetBaseDir) {
+      let assetBaseDir = path.isAbsolute(options.assetBaseDir) ? options.assetBaseDir : path.join(pkgDir, options.assetBaseDir)
+      let tsConfig = p.getTSConfig(assetBaseDir)
+      baseDir = tsConfig.compilerOptions.rootDir ? path.join(assetBaseDir, tsConfig.compilerOptions.rootDir) : assetBaseDir
+      mg.addModules(buildModel, pkgDir, baseDir, glob.sync('**/*.ts', { cwd: baseDir }))
     }
     if (options.database.extensions) {
-      mg.addExtensions(buildModel, pkgDir, options.database.extensions)
+      mg.addExtensions(buildModel, baseDir, options.database.extensions)
     }
     if (options.database.tasks) {
       options.database.tasks.forEach(function(taskSpec) {
