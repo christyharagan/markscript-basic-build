@@ -1,6 +1,6 @@
 {
   "name": "markscript-basic-build",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Basic MarkScript build functions for building deployment models.",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -17,7 +17,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "babel": "^5.8.23",
     "glob": "^5.0.15",
     "marklogic-node-typescript-definitions": "^0.1.1",
     "marklogic-typescript-definitions": "^0.3.0",

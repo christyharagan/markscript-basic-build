@@ -262,13 +262,14 @@ function loadCode(baseDir: string, modulePath: string): string {
   if (fileName.substring(fileName.length - 3).toLowerCase() === '.ts') {
     code = removeDecorators(code)
     code = t.transpile(code, {
-      target: t.ScriptTarget.ES6
+      target: t.ScriptTarget.ES5
     })
   }
 
-  code = babel.transform(code, {
-    optional: ['es6.spec.templateLiterals', 'es6.spec.blockScoping', 'es6.spec.symbols']
-  }).code
+  // TODO: Sadly babel doesn't play nice with MarkLogic's SJS
+  // code = babel.transform(code, {
+  //   optional: ['es6.spec.templateLiterals', 'es6.spec.blockScoping', 'es6.spec.symbols']
+  // }).code
 
   return code
 }
