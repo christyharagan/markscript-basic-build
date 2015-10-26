@@ -4,3 +4,4 @@ export declare function triggersDatabase(): (target: Object, propertyKey: string
 export declare function schemaDatabase(): (target: Object, propertyKey: string) => void;
 export declare function modulesDatabase(): (target: Object, propertyKey: string) => void;
 export declare function securityDatabase(): (target: Object, propertyKey: string) => void;
+export declare function mlRuleSet(definition: MarkScript.RuleSetOptions): (target: Object, propertyKey: string, method: TypedPropertyDescriptor<() => string>) => void;

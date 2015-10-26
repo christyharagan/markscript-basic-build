@@ -19,6 +19,10 @@ declare module MarkScript {
     callPut<T>(name: string, args?: { [name: string]: string | number | boolean }, body?: string | Object): Promise<T>
     callDelete<T>(name: string, args?: { [name: string]: string | number | boolean }): Promise<T>
   }
+
+  interface RuleSetOptions {
+    path: string
+  }
 }
 
 declare module 'markscript-basic-build' {
@@ -31,7 +35,7 @@ declare module 'markscript-basic-build' {
     path: string
   }
   function mlDeploy(): (target: any) => void
-  function mlRuleSet(definition: RuleSetOptions): (target: Object, propertyKey: string, method: TypedPropertyDescriptor<() => string>) => void
+  function mlRuleSet(definition: MarkScript.RuleSetOptions): (target: Object, propertyKey: string, method: TypedPropertyDescriptor<() => string>) => void
   interface TaskOptions {
     type: MarkScript.FrequencyType
     frequency: number

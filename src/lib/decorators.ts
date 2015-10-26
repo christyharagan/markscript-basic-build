@@ -27,3 +27,8 @@ export function securityDatabase() {
   return function(target: Object, propertyKey: string): void {
   }
 }
+
+export function mlRuleSet(definition: MarkScript.RuleSetOptions) {
+  return function(target: Object, propertyKey: string, method: TypedPropertyDescriptor<() => string>): void {
+  }
+}
