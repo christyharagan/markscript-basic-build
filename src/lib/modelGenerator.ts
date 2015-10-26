@@ -7,8 +7,6 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
 
-let babel = require('babel')
-
 function toScalarType(rangeOptions: basic.RangeIndexedOptions, member: s.DecoratedMember<any>): string {
   if (rangeOptions.scalarType) {
     switch (rangeOptions.scalarType) {
