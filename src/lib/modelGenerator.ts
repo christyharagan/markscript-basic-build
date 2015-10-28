@@ -294,7 +294,7 @@ function loadCode(baseDir: string, relFiles: string[], buildDir?: string) {
       code[relPath] = fs.readFileSync(path.join(baseDir, relPath)).toString()
     })
   } else {
-    core.translateTypeScript(baseDir, relFiles, path.join(buildDir, 'tmp'), path.join(buildDir, 'out')).forEach(function(js, i){
+    core.translateTypeScript(baseDir, relFiles, path.join(buildDir, 'out'), path.join(buildDir, 'tmp')).forEach(function(js, i){
       code[relFiles[i]] = js
     })
   }
