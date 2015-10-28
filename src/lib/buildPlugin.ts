@@ -20,23 +20,34 @@ export interface BasicBuildConfig {
   }
 }
 
+function generateModel(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&BasicBuildConfig, typeModel: s.KeyValue<s.reflective.Module>) {
+  let model = mg.generateModel(typeModel, options.database.modelObject, options.databaseConnection.host || os.hostname())
+  Object.keys(model).forEach(function(key){
+    if (key === 'databases') {
+      Object.keys(model.databases).forEach(function(name){
+        buildModel.databases[name] = model.databases[name]
+      })
+    } else if (key === 'servers') {
+      Object.keys(model.servers).forEach(function(name){
+        buildModel.servers[name] = model.servers[name]
+      })
+    } else {
+      buildModel[key] = model[key]
+    }
+  })
+}
+
+function generateAssetModel() {
+
+}
+
 export const basicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
-  generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&BasicBuildConfig, pkgDir:string, typeModel?: s.KeyValue<s.reflective.Module>, assetTypeModel?: s.KeyValue<s.reflective.Module>, buildDir?: string): MarkScript.BuildModel {
-    let model = mg.generateModel(typeModel, options.database.modelObject, options.databaseConnection.host || os.hostname())
-    Object.keys(model).forEach(function(key){
-      if (key === 'databases') {
-        Object.keys(model.databases).forEach(function(name){
-          buildModel.databases[name] = model.databases[name]
-        })
-      } else if (key === 'servers') {
-        Object.keys(model.servers).forEach(function(name){
-          buildModel.servers[name] = model.servers[name]
-        })
-      } else {
-        buildModel[key] = model[key]
-      }
-    })
-    mg.generateAssetModel(assetTypeModel, options.database.modelObject, buildModel, options.database.defaultTaskUser || options.databaseConnection.user)
+  generate: function(buildModel: MarkScript.BuildModel, options: MarkScript.BuildConfig&BasicBuildConfig, pkgDir:string, buildTypeModel?: s.KeyValue<s.reflective.Module>, runtimeTypeModel?: s.KeyValue<s.reflective.Module>, buildDir?: string): MarkScript.BuildModel {
+    generateModel(buildModel, options, buildTypeModel)
+    generateModel(buildModel, options, runtimeTypeModel)
+
+    mg.generateAssetModel(buildTypeModel, options.database.modelObject, buildModel, options.database.defaultTaskUser || options.databaseConnection.user)
+    mg.generateAssetModel(runtimeTypeModel, options.database.modelObject, buildModel, options.database.defaultTaskUser || options.databaseConnection.user)
 
     let baseDir:string
     if (options.database.modules) {
@@ -46,7 +57,7 @@ export const basicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
       mg.addJavaScriptModules(buildModel, pkgDir, baseDir, relFiles)
     } else if (options.assetBaseDir) {
       let assetBaseDir = path.isAbsolute(options.assetBaseDir) ? options.assetBaseDir : path.join(pkgDir, options.assetBaseDir)
-      if (assetTypeModel) {
+      if (runtimeTypeModel) {
         let tsConfig = p.getTSConfig(assetBaseDir)
         baseDir = tsConfig.compilerOptions.rootDir ? path.join(assetBaseDir, tsConfig.compilerOptions.rootDir) : assetBaseDir
         mg.addTypeScriptModules(buildModel, pkgDir, baseDir, tsConfig.files, buildDir)

@@ -175,7 +175,7 @@ var extensionObject = new ExtensionClass();
                   return <MemberVisitor>{
                     onMemberDecorator: function(decorator) {
                       switch (decorator.decoratorType.name) {
-                        case 'mlRuleSet':
+                        case 'mlRuleSet': {
                           if ((<s.PrimitiveType>member.type).primitiveTypeKind !== PrimitiveTypeKind.STRING && !((<s.FunctionType>member.type).typeKind === TypeKind.FUNCTION && (<s.PrimitiveType>(<s.FunctionType>member.type).type).primitiveTypeKind === PrimitiveTypeKind.STRING)) {
                             throw new Error('A class member annotated as a MarkLogic rule set must be a string property, at: ' + module.name + ':' + cc.name + ':' + member.name)
                           }
@@ -187,7 +187,8 @@ var extensionObject = new ExtensionClass();
                             rules: rules
                           })
                           break
-                        case 'mlAlert':
+                        }
+                        case 'mlAlert': {
                           if (cc.staticType.calls && cc.staticType.calls.length === 1 && cc.staticType.calls[0].parameters.length > 0) {
                             throw new Error('A class annotated with a MarkLogic alert must have a zero arg constructor, at: ' + module.name + ':' + cc.name + ':' + member.name)
                           }
@@ -214,7 +215,8 @@ module.exports = function(uri, content){
 }`
                           }
                           break
-                        case 'mlTask':
+                        }
+                        case 'mlTask': {
                           if (cc.staticType.calls && cc.staticType.calls.length === 1 && cc.staticType.calls[0].parameters.length > 0) {
                             throw new Error('A class annotated with a MarkLogic task must have a zero arg constructor, at: ' + module.name + ':' + cc.name + ':' + member.name)
                           }
@@ -237,6 +239,8 @@ module.exports = function(uri, content){
 var taskObject = new TaskClass();
 taskObject.${member.name}();`
                           }
+                          break
+                        }
                       }
                     }
                   }
@@ -290,12 +294,10 @@ function addExtensions(assetModel: MarkScript.AssetModel, baseDir:string, extens
 function loadCode(baseDir: string, relFiles: string[], buildDir?: string) {
   let code: { [relPath: string]: string } = {}
   if (buildDir) {
+    code = core.translateTypeScript(baseDir, relFiles, path.join(buildDir, 'out'), path.join(buildDir, 'tmp'))
+  } else {
     relFiles.forEach(function(relPath) {
       code[relPath] = fs.readFileSync(path.join(baseDir, relPath)).toString()
-    })
-  } else {
-    core.translateTypeScript(baseDir, relFiles, path.join(buildDir, 'out'), path.join(buildDir, 'tmp')).forEach(function(js, i){
-      code[relFiles[i]] = js
     })
   }
   return code
