@@ -289,11 +289,14 @@ function addExtensions(assetModel: MarkScript.AssetModel, baseDir:string, extens
 
 function loadCode(baseDir: string, relFiles: string[], buildDir?: string) {
   let code: { [relPath: string]: string } = {}
-  relFiles.forEach(function(relPath) {
-    code[relPath] = fs.readFileSync(path.join(baseDir, relPath)).toString()
-  })
   if (buildDir) {
-    code = core.cleanAndTranslateTypeScript(code, path.join(buildDir, 'tmp'), path.join(buildDir, 'out'))
+    relFiles.forEach(function(relPath) {
+      code[relPath] = fs.readFileSync(path.join(baseDir, relPath)).toString()
+    })
+  } else {
+    core.translateTypeScript(baseDir, relFiles, path.join(buildDir, 'tmp'), path.join(buildDir, 'out')).forEach(function(js, i){
+      code[relFiles[i]] = js
+    })
   }
   return code
 }
