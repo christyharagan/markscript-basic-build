@@ -56,13 +56,12 @@ export const basicBuildPlugin: core.BuildModelPlugin<BasicBuildConfig, {}> = {
       let relFiles = Array.isArray(options.database.modules) ? <string[]>options.database.modules : glob.sync(<string>options.database.modules, { cwd: baseDir })
       mg.addJavaScriptModules(buildModel, pkgDir, baseDir, relFiles)
     } else if (options.assetBaseDir) {
-      let assetBaseDir = path.isAbsolute(options.assetBaseDir) ? options.assetBaseDir : path.join(pkgDir, options.assetBaseDir)
+      baseDir = path.isAbsolute(options.assetBaseDir) ? options.assetBaseDir : path.join(pkgDir, options.assetBaseDir)
       if (runtimeTypeModel) {
-        let tsConfig = p.getTSConfig(assetBaseDir)
-        baseDir = tsConfig.compilerOptions.rootDir ? path.join(assetBaseDir, tsConfig.compilerOptions.rootDir) : assetBaseDir
+        let tsConfig = p.getTSConfig(baseDir)
         mg.addTypeScriptModules(buildModel, pkgDir, baseDir, tsConfig.files, buildDir)
       } else {
-        mg.addJavaScriptModules(buildModel, pkgDir, assetBaseDir, glob.sync('**/*.ts', { cwd: baseDir }))
+        mg.addJavaScriptModules(buildModel, pkgDir, baseDir, glob.sync('**/*.ts', { cwd: baseDir }))
       }
     }
     if (options.database.extensions) {
