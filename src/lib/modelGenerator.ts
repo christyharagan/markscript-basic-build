@@ -1,11 +1,11 @@
 import {reflective as s, visitType, TypeVisitor, TypeKind, expressionToLiteral, PrimitiveTypeKind, MemberVisitor, interfaceConstructorToString, classConstructorToString, KeyValue, visitModules, CompositeTypeVisitor, visitClassConstructor, ContainerVisitor, ClassConstructorVisitor} from 'typescript-schema'
 import * as basic from 'markscript-basic'
+import * as core from 'markscript-core'
 import * as d from './decorators'
-import * as t from 'typescript'
 import * as p from 'typescript-package'
 import * as path from 'path'
-import * as fs from 'fs'
 import * as os from 'os'
+import * as fs from 'fs'
 
 function toScalarType(rangeOptions: basic.RangeIndexedOptions, member: s.DecoratedMember<any>): string {
   if (rangeOptions.scalarType) {
@@ -122,7 +122,7 @@ export function generateAssetModel(schema: KeyValue<s.Module>, definition: Objec
             onClassConstructorDecorator: function(decorator) {
               switch (decorator.decoratorType.name) {
                 case 'mlExtension':
-                  let methods:string[] = []
+                  let methods: string[] = []
                   let extensionOptions = decorator.parameters && decorator.parameters[0] ? <basic.ExtensionOptions>expressionToLiteral(decorator.parameters[0]) : null
 
                   // TODO: Implement type checking
@@ -154,7 +154,7 @@ export function generateAssetModel(schema: KeyValue<s.Module>, definition: Objec
                   //   throw new Error('A class annotated as a MarkLogic extension should implement markscript-core.Extension, at: ' + module.name + ':' + cc.name)
                   // }
 
-                  let code = 'var ExtensionClass = r' + `equire("${toModuleName(module.name) }").${cc.name};
+                  let code = 'var ExtensionClass = r' + `equire("${toModuleName(module.name)}").${cc.name};
 var extensionObject = new ExtensionClass();
 `
                   methods.forEach(function(method) {
@@ -207,7 +207,7 @@ var extensionObject = new ExtensionClass();
                           }
                           assetModel.modules[alertModuleName] = {
                             name: alertModuleName,
-                            code: 'var AlertClass = r' + `equire("${toModuleName(module.name) }").${cc.name};
+                            code: 'var AlertClass = r' + `equire("${toModuleName(module.name)}").${cc.name};
 var alertObject = new AlertClass();
 module.exports = function(uri, content){
   alertObject.${member.name}(uri, content);
@@ -252,86 +252,80 @@ taskObject.${member.name}();`
   return assetModel
 }
 
-function loadCode(baseDir: string, modulePath: string): string {
-  let fileName = path.join(baseDir, modulePath)
-  let code = fs.readFileSync(fileName).toString()
-
-  // TODO: Do we really want to transpile ourselves? If so, we should offer more options to the user
-  if (fileName.substring(fileName.length - 3).toLowerCase() === '.ts') {
-    code = removeDecorators(code)
-    code = t.transpile(code, {
-      target: t.ScriptTarget.ES5
-    })
+function normaliseRelPath(path: string) {
+  path = path.replace(/\\/g, '/')
+  if (path.substring(0, 2) === './') {
+    path = path.substring(2)
   }
+  if (path.substring(path.length - 3) === '.ts' || path.substring(path.length - 3) === '.js') {
+    path = path.substring(0, path.length - 3)
+  }
+  return path
+}
 
-  // TODO: Sadly babel doesn't play nice with MarkLogic's SJS
-  // code = babel.transform(code, {
-  //   optional: ['es6.spec.templateLiterals', 'es6.spec.blockScoping', 'es6.spec.symbols']
-  // }).code
+export function addJavaScriptExtensions(assetModel: MarkScript.AssetModel, baseDir:string, extensions: { [name: string]: string }) {
+  addExtensions(assetModel, baseDir, extensions)
+}
 
+export function addTypeScriptExtensions(assetModel: MarkScript.AssetModel, baseDir:string, extensions: { [name: string]: string }, buildDir: string) {
+  addExtensions(assetModel, baseDir, extensions, buildDir)
+}
+
+function addExtensions(assetModel: MarkScript.AssetModel, baseDir:string, extensions: { [name: string]: string }, buildDir?: string) {
+  let names:string[] = []
+  let relFiles:string[] = []
+  Object.keys(extensions).forEach(function(name){
+    names.push(name)
+    relFiles.push(extensions[name])
+  })
+  let code = loadCode(baseDir, relFiles, buildDir)
+  names.forEach(function(name, i){
+    assetModel.extensions[name] = {
+      name: name,
+      code: code[relFiles[i]]
+    }
+  })
+}
+
+function loadCode(baseDir: string, relFiles: string[], buildDir?: string) {
+  let code: { [relPath: string]: string } = {}
+  relFiles.forEach(function(relPath) {
+    code[relPath] = fs.readFileSync(path.join(baseDir, relPath)).toString()
+  })
+  if (buildDir) {
+    code = core.cleanAndTranslateTypeScript(code, path.join(buildDir, 'tmp'), path.join(buildDir, 'out'))
+  }
   return code
 }
 
-export function addExtensions(assetModel: MarkScript.AssetModel, baseDir: string, extensions: { [name: string]: string }) {
-  if (!assetModel.extensions) {
-    assetModel.extensions = {}
-  }
-  Object.keys(extensions).forEach(function(name) {
-    let extensionCode = loadCode(baseDir, extensions[name])
-
-    assetModel.extensions[name] = {
-      name: name,
-      code: extensionCode
-    }
-  })
-}
-
-export function addModules(assetModel: MarkScript.AssetModel, packageDir: string, baseDir:string, modulePaths: string[]) {
-  if (!assetModel.modules) {
-    assetModel.modules = {}
-  }
+function addModules(assetModel: MarkScript.AssetModel, packageDir: string, baseDir: string, relFiles: string[], buildDir?: string) {
   let packageJson = p.getPackageJson(packageDir)
-  modulePaths.forEach(function(moduleToDeploy) {
-    if (!assetModel.modules[moduleToDeploy]) {
-      let moduleCode = loadCode(baseDir, moduleToDeploy)
-      let moduleName = toModuleName(moduleToDeploy, packageJson.name)
+  let code = loadCode(baseDir, relFiles, buildDir)
 
-      assetModel.modules[moduleName] = {
-        name: moduleName,
-        code: moduleCode
-      }
+  Object.keys(code).forEach(function(relPath) {
+    let moduleName = toModuleName(relPath, packageJson.name)
 
-      if (packageJson.main && packageJson.main === moduleToDeploy) {
-        let packageModuleName = toModuleName(packageJson.name)
-        assetModel.modules[packageModuleName] = {
-          name: packageModuleName,
-          code: moduleName
-        }
+    assetModel.modules[moduleName] = {
+      name: moduleName,
+      code: code[relPath]
+    }
+
+    if (packageJson.main && normaliseRelPath(packageJson.main) === normaliseRelPath(relPath)) {
+      let packageModuleName = toModuleName(packageJson.name)
+      assetModel.modules[packageModuleName] = {
+        name: packageModuleName,
+        code: moduleName
       }
     }
   })
 }
 
-function removeDecorators(source: string): string {
-  let count = 0
-  let sf = t.createSourceFile('blah.ts', source, t.ScriptTarget.ES5)
-  function _removeDecorators(node: t.Node) {
-    t.forEachChild(node, function(node) {
-      if (node.decorators) {
-        node.decorators.forEach(function(decorator) {
-          let start = decorator.getStart(sf) - count
-          let end = decorator.getEnd() - count
-          count += (end - start)
-          let before = source.substring(0, start)
-          let after = source.substring(end)
-          source = before + after
-        })
-      }
-      _removeDecorators(node)
-    })
-  }
-  _removeDecorators(sf)
-  return source
+export function addJavaScriptModules(assetModel: MarkScript.AssetModel, packageDir: string, baseDir: string, relFiles: string[]) {
+  addModules(assetModel, packageDir, baseDir, relFiles)
+}
+
+export function addTypeScriptModules(assetModel: MarkScript.AssetModel, packageDir: string, baseDir: string, relFiles: string[], buildDir: string) {
+  addModules(assetModel, packageDir, baseDir, relFiles, buildDir)
 }
 
 export function generateModel(schema: KeyValue<s.Module>, definition: Object, defaultHost?: string): MarkScript.Model {
